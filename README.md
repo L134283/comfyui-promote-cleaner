@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/L134283/comfyui-promote-cleaner/actions/workflows/tests.yml/badge.svg)](https://github.com/L134283/comfyui-promote-cleaner/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Comfy Registry](https://img.shields.io/badge/Comfy_Registry-yuinya-blue)](https://registry.comfy.org/yuinya/comfyui-promote-cleaner)
+[![Comfy Registry](https://img.shields.io/badge/Comfy_Registry-comfyui--promote--cleaner-blue)](https://registry.comfy.org/nodes/comfyui-promote-cleaner)
 
 面向 **Anima Base** 的提示词清洁节点：把从 Danbooru 等站点复制来的「老式下划线标签」一键洗成模型能直接吃的标准格式。
 
@@ -305,6 +305,9 @@ git commit -am "Bump version to 1.1.1" && git push
 ```
 
 `publish_action.yml` 会自动把它发到 Registry。**没配 Secret 之前不会报错**，只会打印一条 warning 然后跳过。
+
+发布后的节点页面：https://registry.comfy.org/nodes/comfyui-promote-cleaner
+（注意 URL 是 `/nodes/<节点ID>`，不是 `/<发布者>/<节点>`；打包下载地址形如 `https://cdn.comfy.org/yuinya/comfyui-promote-cleaner/<版本>/node.zip`。）
 
 也可以在本地发（需要 `pip install comfy-cli`）：
 
