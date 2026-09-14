@@ -2,9 +2,13 @@
 name = "comfyui-promote-cleaner"
 description = "Prompt cleaner for Anima Base: Danbooru underscore tags -> comma separated, bracket-escaped, deduplicated, blacklist-filtered prompt text. Several text inputs are merged in order, and all toggles/blacklist live in one settings dialog (STRING out, plus a CLIP Text Encode variant)."
 version = "1.1.0"
-license = "MIT"
+# Comfy Registry 只接受 { file = "..." } 或 { text = "..." } 两种写法，裸字符串会被拒。
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = []
+classifiers = [
+    "Operating System :: OS Independent",
+]
 
 [project.urls]
 Repository = "https://github.com/L134283/comfyui-promote-cleaner"

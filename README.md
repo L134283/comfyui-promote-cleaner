@@ -9,7 +9,7 @@
 * **大按钮 + 设置弹窗**：`bracket_policy` / `keep_weights` / `blacklist` 等 9 个开关收进「⚙ 清洁设置」窗口，节点上只留一行设置摘要
 * 清洗结果**直接显示在节点上**，不用另接预览节点
 * 权重语法 `(tag:1.2)`、`((tag:1.2))` **原样保留**，不会被当作字面括号转义
-* 界面文案走**官方 i18n**（`locales/zh/nodeDefs.json`），并自带 `docs/` 帮助页
+* 界面文案走**官方 i18n**（`locales/zh/nodeDefs.json`），并自带节点帮助页（`web/docs/`，点节点右上角的 `?` 查看）
 
 ## 效果示例
 
@@ -269,13 +269,13 @@ Comfyui-Promote-Cleaner/
 │   ├── config.py                        # CleanOptions / BracketPolicy
 │   ├── blacklist.py                     # 默认黑名单 + 规则解析
 │   └── cleaner.py                       # 切分 -> 规整 -> 过滤 -> 转义 -> 去重 -> 拼接
-├── web/
-│   └── js/prompt_cleaner.js             # 前端扩展：大按钮 + 设置弹窗 + 文本输入口增减
+├── web/                                 # WEB_DIRECTORY：挂载为 /extensions/Comfyui-Promote-Cleaner/
+│   ├── js/prompt_cleaner.js             # 前端扩展：大按钮 + 设置弹窗 + 文本输入口增减
+│   └── docs/
+│       ├── PromoteCleaner_Text.md       # 节点帮助页（文件名必须等于 node_id）
+│       └── PromoteCleaner_ClipEncode.md
 ├── locales/
 │   └── zh/nodeDefs.json                 # 官方 i18n：节点名/描述/输入名/提示 的中文
-├── docs/
-│   ├── PromoteCleaner_Text.md           # 帮助页（文件名必须等于 node_id）
-│   └── PromoteCleaner_ClipEncode.md
 ├── tests/
 │   ├── test_cleaner.py                  # 纯引擎单测（不依赖 ComfyUI）
 │   └── test_node_contract.py            # 节点契约回归测试（需要 ComfyUI）
