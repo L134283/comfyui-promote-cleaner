@@ -1,0 +1,49 @@
+# 自动发布到 Comfy Registry。
+#
+# 触发条件：push 到 main 且改动了 pyproject.toml（即改版本号时），或手动 workflow_dispatch。
+# 前置条件：仓库 Settings -> Secrets and variables -> Actions 里添加名为
+#           REGISTRY_ACCESS_TOKEN 的 Secret，值为 Registry 网站创建的 API Key。
+#           没配之前不报错，只打印一条 warning 然后跳过。
+#
+# 用法：把 pyproject.toml 的 version 改一下（如 1.1.0 -> 1.1.1）再 push，就自动发布。
+# 注意：同一个版本号不能重复发布；Publisher 与 pyproject 的 PublisherId 必须一致。
+
+name: Publish to Comfy registry
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+
+permissions:
+  contents: read
+
+jobs:
+  publish-node:
+    name: Publish Custom Node to registry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Check REGISTRY_ACCESS_TOKEN
+        id: token
+        env:
+          TOKEN: ${{ secrets.REGISTRY_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning title=缺少 REGISTRY_ACCESS_TOKEN::请在仓库 Settings -> Secrets and variables -> Actions 添加 REGISTRY_ACCESS_TOKEN（值为 Comfy Registry 的 API Key）后再发布，本次跳过。"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 官方 composite action 自己会 checkout + 装 comfy-cli + comfy node publish --token
+      - name: Publish Custom Node
+        if: steps.token.outputs.skip != 'true'
+        uses: Comfy-Org/publish-node-action@main
+        with:
+          personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN }}
+          skip_checkout: "true"

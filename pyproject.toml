@@ -15,8 +15,8 @@ Repository = "https://github.com/L134283/comfyui-promote-cleaner"
 "Bug Tracker" = "https://github.com/L134283/comfyui-promote-cleaner/issues"
 
 [tool.comfy]
-# ComfyUI Registry 的发布者 ID = GitHub 用户名。
-PublisherId = "L134283"
+# ComfyUI Registry 的发布者 ID（必须与 registry.comfy.org 上创建的 Publisher ID 完全一致）。
+PublisherId = "yuinya"
 DisplayName = "Prompt Cleaner (Anima)"
 # 声明支持的最低 ComfyUI 版本（由 ComfyUI 的 comfy_config 读取）
 "requires-comfyui" = ">=0.3.60"

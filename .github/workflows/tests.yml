@@ -1,0 +1,64 @@
+# 每次 push / PR 自动跑一遍检查。
+#
+# 这里只跑**不需要 ComfyUI** 的测试：
+#   - tests/test_cleaner.py            纯清洗引擎（50 例）
+#   - tests/test_frontend_contract.py  前后端命名契约（5 例：帮助页路径、插槽名、控件名）
+# tests/test_node_contract.py 需要 ComfyUI 环境（要 import comfy_api），在 CI 里会自动跳过
+# 并打印 [skip]；想跑真环境请本地执行：python tests/test_node_contract.py
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Clean engine tests
+        run: python tests/test_cleaner.py
+
+      - name: Frontend / backend contract
+        run: python tests/test_frontend_contract.py
+
+      - name: Byte-compile the plugin
+        run: python -m compileall -q __init__.py nodes.py prompt_cleaner tests
+
+      - name: Node contract tests (auto-skipped without ComfyUI)
+        run: python tests/test_node_contract.py
+
+  frontend-syntax:
+    name: Frontend syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      - name: Check the extension script (ESM)
+        run: |
+          cp web/js/prompt_cleaner.js "$RUNNER_TEMP/prompt_cleaner.mjs"
+          node --check "$RUNNER_TEMP/prompt_cleaner.mjs"

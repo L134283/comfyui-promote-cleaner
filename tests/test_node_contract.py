@@ -278,10 +278,16 @@ def test_两个节点都在中文语言包里有翻译():
 if __name__ == "__main__":
     import traceback
 
+    # 先把用例列表固定下来：循环变量 `test_name` / `test_func` 之后也会成为全局变量，
+    # 如果直接数 globals()，它们会被当成用例（旧写法会多报 2 例）。
+    tests = [
+        (name, func)
+        for name, func in sorted(globals().items())
+        if name.startswith("test_") and callable(func)
+    ]
+
     failures: list[str] = []
-    for test_name, test_func in sorted(list(globals().items())):
-        if not test_name.startswith("test_") or not callable(test_func):
-            continue
+    for test_name, test_func in tests:
         try:
             test_func()
         except Exception:
@@ -291,6 +297,5 @@ if __name__ == "__main__":
         else:
             print(f"[ OK ] {test_name}")
 
-    total = len([n for n in globals() if n.startswith("test_")])
-    print(f"\n{total - len(failures)}/{total} passed")
+    print(f"\n{len(tests) - len(failures)}/{len(tests)} passed")
     sys.exit(1 if failures else 0)
