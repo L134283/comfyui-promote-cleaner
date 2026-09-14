@@ -37,7 +37,7 @@ cd ComfyUI/custom_nodes
 git clone https://github.com/L134283/comfyui-promote-cleaner
 ```
 
-发布到 Comfy Registry 之后（见文末《发布到 Comfy Registry》），还可以：
+发布到 Comfy Registry 之后（见 [CONTRIBUTING.md](CONTRIBUTING.md) 的发布流程），还可以：
 
 * 在 **ComfyUI-Manager** 里直接搜 `Prompt Cleaner` 安装；
 * 或命令行 `comfy node install comfyui-promote-cleaner`。
@@ -230,7 +230,7 @@ re:^year\s+\d{4}$
 
 ## 单元测试
 
-三套测试，都能独立运行（退出码 0 表示全过），也都兼容 `pytest`：
+三套测试都是用标准库写的（不需要 pytest，但兼容），退出码 0 表示全过：
 
 ```bash
 python tests/test_cleaner.py            # 50 例：纯清洗引擎，不依赖 ComfyUI
@@ -238,84 +238,16 @@ python tests/test_frontend_contract.py  #  5 例：前后端命名契约，不�
 python tests/test_node_contract.py      # 10 例：节点契约 + 多路输入，需要 ComfyUI 环境
 ```
 
-### `tests/test_cleaner.py`（纯引擎）
+* 前两套**不需要 ComfyUI**，改完清洗逻辑随时可跑；
+* `test_node_contract.py` 会 import `comfy_api`，所以要在装了 ComfyUI 的 Python 环境下跑；没有 ComfyUI 时会自动打印 `[skip]` 跳过，不会报错。
 
-覆盖：用户给的 3 组基准、幂等性、空输入、连续/首尾逗号、大小写去重、黑名单（整标签 / 下划线形态 / 正则 / 非法正则 / 注释）、全角标点、三种括号策略、权重保留（显式 / 嵌套 / 可关闭）、8 层嵌套、以及**未闭合括号不死循环**的回归用例。
+CI 在每次 push / PR 时自动跑前两套 + 前端 JS 语法检查。
 
-### `tests/test_frontend_contract.py`（前后端契约）
+## 开发与发布
 
-`web/js/prompt_cleaner.js` 里硬编码了几份「必须与后端对齐」的清单（负责哪些节点、要收进弹窗的控件名、额外口插槽名）。这些东西**写错不报错，只会静默失效**，所以这里用纯文本解析把它们钉住：
+想改代码 / 想自己发一版？流程和环境说明都在 **[CONTRIBUTING.md](CONTRIBUTING.md)**（测试怎么跑、CI 做什么、Registry 发布步骤、元数据里容易被拒的几处）。
 
-| 用例 | 作用 |
-| --- | --- |
-| 前端 `NODE_TYPES` = 后端 `node_id` | 节点改名后前端不会「失联」 |
-| 设置弹窗里的控件名都真实存在 | 防「控件没收起来 / 弹窗改了个不存在的名字」 |
-| 开关与下拉清单都在 `OPTION_WIDGETS` 里 | 防出现两套 UI（一个收起来、一个还留在节点上） |
-| 额外文本插槽名与后端 `Autogrow` 声明一致 | 前端手加的口后端必须认识 |
-| 节点帮助页放在 `WEB_DIRECTORY` 里 | 上次踩过的坑：放包根的 `docs/` 前端取不到 |
-
-### `tests/test_node_contract.py`（节点契约）
-
-这是一个**回归测试**，起因是真实事故：用户在一个「保存于 `text_in` 存在之前」的工作流里运行节点，报
-`TypeError: PromptCleanerText.execute() missing 1 required positional argument: 'text_in'`。
-
-根因在 ComfyUI `execution.py`：`input_data_all` **只包含工作流里实际存在的输入键**，不会补默认值。
-widget 输入前端总会序列化，所以从不缺失；而 **socket 输入未连接时根本不会出现在 `inputs` 里** ——
-因此 socket 输入在 `execute` 签名里**必须带默认值**。
-
-该文件把这个约定固化成断言，防止再次发生：
-
-| 用例 | 作用 |
-| --- | --- |
-| 每个节点都注册了 node_id 与分类 | 基本 schema 校验 |
-| **schema 输入与 execute 参数一一对应** | 漏写参数会被立刻抓出来（就是这次事故） |
-| **所有 socket 输入都必须有默认值** | 同上，从签名侧再兜一层 |
-| 不传任何输入也能执行 | 最老式的 API 工作流也不崩 |
-| 缺输入的 None 不会静默关掉开关 | 防 `bool(None) == False` 把去重/黑名单悄悄关掉 |
-| 旧工作流缺少 socket 输入仍可运行 | 精确复现事故场景 |
-| 额外文本插槽会展开成可选输入 | 直接调 ComfyUI 的 `get_finalized_class_inputs`，锁住「前端插槽名 = `extra_texts.text_in_N`」这套约定 |
-| 多来源文本按 首口 → 额外口 → 文本框 的顺序合并 | 顺序、跨来源去重 |
-| 额外文本插槽的脏值不会让节点崩溃 | 非字典 / 非字符串（`None`、占位对象）都被安全忽略 |
-| 两个节点都在中文语言包里有翻译 | i18n 完整性 |
-
-在没有 ComfyUI 的纯 Python 环境里，这个文件会自动打印 `[skip]` 并跳过，不会报错。
-
-## CI（GitHub Actions）
-
-| 工作流 | 触发 | 做什么 |
-| --- | --- | --- |
-| `.github/workflows/tests.yml` | push / PR | Python 3.10 与 3.12 下跑 `test_cleaner.py` + `test_frontend_contract.py` + `compileall`；另起一个 job 用 Node 校验前端扩展的语法 |
-| `.github/workflows/publish_action.yml` | push 改动 `pyproject.toml` / 手动 | 调用官方 `Comfy-Org/publish-node-action` 发布到 Comfy Registry |
-
-CI 里**不跑** `test_node_contract.py`（它要 `import comfy_api`，也就是要一套 ComfyUI 环境），该文件在无 ComfyUI 的机器上会自动跳过；本地装了 ComfyUI 时请手动跑它。
-
-## 发布到 Comfy Registry（维护者用）
-
-一次性准备：
-
-1. 在 https://registry.comfy.org 创建 **Publisher**，ID 取 `yuinya`（必须与 `pyproject.toml` 里的 `PublisherId` 一致；**ID 创建后不可修改**）。
-2. 在该 publisher 下创建 **API Key**（只显示一次，务必先存好）。
-3. 在 GitHub 仓库 `Settings → Secrets and variables → Actions` 添加 Secret：名字 **`REGISTRY_ACCESS_TOKEN`**，值填上面那个 API Key。
-
-之后每次发版：
-
-```bash
-# 改 pyproject.toml 里的 version（同一个版本号不能重复发布），然后 push
-git commit -am "Bump version to 1.1.1" && git push
-```
-
-`publish_action.yml` 会自动把它发到 Registry。**没配 Secret 之前不会报错**，只会打印一条 warning 然后跳过。
-
-发布后的节点页面：https://registry.comfy.org/nodes/comfyui-promote-cleaner
-（注意 URL 是 `/nodes/<节点ID>`，不是 `/<发布者>/<节点>`；打包下载地址形如 `https://cdn.comfy.org/yuinya/comfyui-promote-cleaner/<版本>/node.zip`。）
-
-也可以在本地发（需要 `pip install comfy-cli`）：
-
-```bash
-comfy node publish     # 提示时粘贴 API Key
-```
-
-> Windows 提醒：官方文档明确指出 `Ctrl+V` 粘贴 API Key 会多带一个 `\x16` 字符导致认证失败，请用**鼠标右键粘贴**。
+一句话版：push/PR 会由 GitHub Actions 自动跑测试；改 `pyproject.toml` 的 `version` 并 push 会自动发布到 Comfy Registry。
 
 ## 目录结构
 
@@ -345,6 +277,7 @@ Comfyui-Promote-Cleaner/
 ├── pyproject.toml                       # 含 [tool.comfy] 注册表元数据
 ├── requirements.txt                     # 无第三方依赖
 ├── LICENSE                              # MIT
+├── CONTRIBUTING.md                      # 开发 / 测试 / 发布说明（维护者与贡献者）
 ├── .gitignore
 └── README.md
 ```
@@ -403,12 +336,8 @@ A：这两个按钮由前端扩展（`web/js/prompt_cleaner.js`，通过 `WEB_DI
 **Q：会不会打印我的提示词内容？**
 A：不会写日志。清洗结果只会通过 ComfyUI 的节点预览通道发给你自己的界面看，日志里不记录任何 prompt 内容。
 
-**Q：发布到 ComfyUI Registry 需要改什么？**
-A：`pyproject.toml` 里 `[tool.comfy]` 的 `PublisherId` 已经写成 `yuinya`（必须与 Registry 上创建的 Publisher ID 完全一致）。如果你 fork 之后要自己发布，把它换成**你的** Publisher ID，并按《发布到 Comfy Registry》配好 Secret，之后改版本号 push 即自动发布。
-另外两个官方校验的坑：`license` **必须**写成 `{ file = "LICENSE" }` 或 `{ text = "MIT License" }`，裸字符串（`license = "MIT"`）会被拒；`[project.urls]` 里必须有 `Repository`。
-
 ## 开源许可
 
 [MIT](LICENSE) —— 随便用、随便改、随便再发布，保留版权声明即可。
 
-欢迎提 [Issue](https://github.com/L134283/comfyui-promote-cleaner/issues) 或 PR。
+欢迎提 [Issue](https://github.com/L134283/comfyui-promote-cleaner/issues) 或 PR；想改代码 / 自己发一版，先看一眼 [CONTRIBUTING.md](CONTRIBUTING.md)。
