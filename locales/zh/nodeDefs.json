@@ -1,0 +1,130 @@
+{
+  "PromoteCleaner_Text": {
+    "display_name": "提示词清洁",
+    "description": "把 Danbooru 风格的老式下划线标签清洗成 Anima Base 可直接食用的提示词：逗号+空格分隔、括号转义为字面量、去重、清理残留分隔符、黑名单过滤。(tag:1.2) 这类权重语法会被原样保留。多路文本输入口与文本框的内容会按顺序合并成一份提示词再清洁。",
+    "inputs": {
+      "text_in": {
+        "name": "文本输入",
+        "tooltip": "可选的 STRING 连线口。从上游进来的提示词会被清洁；额外文本口（若有）和下面文本框里的内容会依次紧跟在它之后，一起清洁。不连线时只用其它来源。"
+      },
+      "extra_texts": {
+        "name": "更多文本输入",
+        "tooltip": "额外的文本输入口。\n· 连上最后一个口，会自动再补一个新的（最多 10 个）；\n· 也可以点节点上的「＋ 文本输入口」按钮，或在「清洁设置」窗口里手动增减。\n所有连上的口都会按「文本输入 → 更多文本输入 → 提示词文本」的顺序拼接，与文本框内容合并成一份提示词一起清洁，所以去重、黑名单对跨来源的重复标签同样有效。"
+      },
+      "text": {
+        "name": "提示词文本",
+        "tooltip": "粘贴原始标签即可：支持逗号分隔、一行一个标签、或两者混合。当「文本输入」连上时，本框内容会追加在它之后（额外文本口排在更前面），方便把上游提示词和自己补的标签混在一起。留空则只用连线口。"
+      },
+      "bracket_policy": {
+        "name": "括号转义策略",
+        "tooltip": "括号转义策略。\n· 仅转义圆括号（推荐）：sunna (zenless zone zero) → sunna \\(zenless zone zero\\)。ComfyUI 中只有 \\( \\) 是真正生效的转义（见 comfy/sd1_clip.py 的 escape_important）。\n· 全部转义：方括号/花括号也补反斜杠。注意 [ ] { } 在 ComfyUI 里本来就不是语法符号，写 \\[ \\] \\{ \\} 不会被还原，反斜杠会被 Qwen2 分词器当作字面字符。\n· 保持原样：不做任何转义。\n显式权重 (tag:1.2) 由下方「保留权重」开关单独控制，不受本策略影响。"
+      },
+      "keep_weights": {
+        "name": "保留权重语法",
+        "tooltip": "保留显式权重语法：masterpiece, (best_quality:1.3) → masterpiece, (best quality:1.3)\n括号内容以 :数字 结尾时判定为权重并原样保留，交给 ComfyUI 正常解析；其余括号（如角色系列名 sunna (zenless zone zero)）照常转义。\n((tag:1.2)) 这种纯嵌套权重也会保留。\n关掉后所有圆括号一律转义，(masterpiece:1.2) 会退化成 \\(masterpiece:1.2\\)（权重失效）。"
+      },
+      "underscore_to_space": {
+        "name": "下划线转空格",
+        "tooltip": "把标签里的下划线转成空格：drawing_bow → drawing bow；sunna_(zenless_zone_zero) → sunna (zenless zone zero)。"
+      },
+      "dedupe": {
+        "name": "去重",
+        "tooltip": "按标签去重，忽略大小写与首尾空格，只保留第一次出现的位置。"
+      },
+      "strip_blacklist": {
+        "name": "黑名单过滤",
+        "tooltip": "启用后按下方黑名单剔除 tagme / watermark / signature 等脏标签。"
+      },
+      "lowercase": {
+        "name": "转小写",
+        "tooltip": "输出标签统一转小写，符合 Anima 社区规范（标签小写、多词用空格）。"
+      },
+      "separator": {
+        "name": "分隔符",
+        "tooltip": "标签之间的连接符，默认「逗号 + 空格」。"
+      },
+      "normalize_fullwidth": {
+        "name": "全角转半角",
+        "tooltip": "把全角标点与全角空格规整为半角，例如 （） → () 、 ＿ → _ 。"
+      },
+      "blacklist": {
+        "name": "黑名单",
+        "tooltip": "黑名单规则，每行一条：\n· 空行、# 开头为注释；\n· 普通文本 = 整标签匹配（忽略大小写，空格与下划线视为等同），如 watermark；\n· re: 开头 = 正则包含匹配，如 re:^year\\s+\\d{4}$。\n清空本框即彻底关闭黑名单过滤。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "clean text",
+        "tooltip": "清洗后的单行提示词，可直接接到 CLIP Text Encode。"
+      }
+    }
+  },
+  "PromoteCleaner_ClipEncode": {
+    "display_name": "提示词清洁（CLIP 文本编码）",
+    "description": "先按 Prompt Cleaner 的规则清洗文本，再把清洗结果交给 CLIP 编码。一路输出 CONDITIONING 可直接进采样器，另一路输出清洗后的文本便于复用/复核。多路文本输入口与文本框的内容会按顺序合并成一份提示词再清洁。",
+    "inputs": {
+      "clip": {
+        "name": "CLIP",
+        "tooltip": "用于编码文本的 CLIP / 文本编码器（Anima 用 qwen_3_06b_base）。"
+      },
+      "text_in": {
+        "name": "文本输入",
+        "tooltip": "可选的 STRING 连线口。从上游进来的提示词会被清洁；额外文本口（若有）和下面文本框里的内容会依次紧跟在它之后，一起清洁。不连线时只用其它来源。"
+      },
+      "extra_texts": {
+        "name": "更多文本输入",
+        "tooltip": "额外的文本输入口。\n· 连上最后一个口，会自动再补一个新的（最多 10 个）；\n· 也可以点节点上的「＋ 文本输入口」按钮，或在「清洁设置」窗口里手动增减。\n所有连上的口都会按「文本输入 → 更多文本输入 → 提示词文本」的顺序拼接，与文本框内容合并成一份提示词一起清洁，所以去重、黑名单对跨来源的重复标签同样有效。"
+      },
+      "text": {
+        "name": "提示词文本",
+        "tooltip": "粘贴原始标签即可：支持逗号分隔、一行一个标签、或两者混合。当「文本输入」连上时，本框内容会追加在它之后（额外文本口排在更前面），方便把上游提示词和自己补的标签混在一起。留空则只用连线口。"
+      },
+      "bracket_policy": {
+        "name": "括号转义策略",
+        "tooltip": "括号转义策略。\n· 仅转义圆括号（推荐）：sunna (zenless zone zero) → sunna \\(zenless zone zero\\)。ComfyUI 中只有 \\( \\) 是真正生效的转义（见 comfy/sd1_clip.py 的 escape_important）。\n· 全部转义：方括号/花括号也补反斜杠。注意 [ ] { } 在 ComfyUI 里本来就不是语法符号，写 \\[ \\] \\{ \\} 不会被还原，反斜杠会被 Qwen2 分词器当作字面字符。\n· 保持原样：不做任何转义。\n显式权重 (tag:1.2) 由下方「保留权重」开关单独控制，不受本策略影响。"
+      },
+      "keep_weights": {
+        "name": "保留权重语法",
+        "tooltip": "保留显式权重语法：masterpiece, (best_quality:1.3) → masterpiece, (best quality:1.3)\n括号内容以 :数字 结尾时判定为权重并原样保留，交给 ComfyUI 正常解析；其余括号（如角色系列名 sunna (zenless zone zero)）照常转义。\n((tag:1.2)) 这种纯嵌套权重也会保留。\n关掉后所有圆括号一律转义，(masterpiece:1.2) 会退化成 \\(masterpiece:1.2\\)（权重失效）。"
+      },
+      "underscore_to_space": {
+        "name": "下划线转空格",
+        "tooltip": "把标签里的下划线转成空格：drawing_bow → drawing bow；sunna_(zenless_zone_zero) → sunna (zenless zone zero)。"
+      },
+      "dedupe": {
+        "name": "去重",
+        "tooltip": "按标签去重，忽略大小写与首尾空格，只保留第一次出现的位置。"
+      },
+      "strip_blacklist": {
+        "name": "黑名单过滤",
+        "tooltip": "启用后按下方黑名单剔除 tagme / watermark / signature 等脏标签。"
+      },
+      "lowercase": {
+        "name": "转小写",
+        "tooltip": "输出标签统一转小写，符合 Anima 社区规范（标签小写、多词用空格）。"
+      },
+      "separator": {
+        "name": "分隔符",
+        "tooltip": "标签之间的连接符，默认「逗号 + 空格」。"
+      },
+      "normalize_fullwidth": {
+        "name": "全角转半角",
+        "tooltip": "把全角标点与全角空格规整为半角，例如 （） → () 、 ＿ → _ 。"
+      },
+      "blacklist": {
+        "name": "黑名单",
+        "tooltip": "黑名单规则，每行一条：\n· 空行、# 开头为注释；\n· 普通文本 = 整标签匹配（忽略大小写，空格与下划线视为等同），如 watermark；\n· re: 开头 = 正则包含匹配，如 re:^year\\s+\\d{4}$。\n清空本框即彻底关闭黑名单过滤。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "conditioning",
+        "tooltip": "清洗后文本的编码结果，可直接接采样器。"
+      },
+      "1": {
+        "name": "clean text",
+        "tooltip": "清洗后的单行提示词，便于复用或复核。"
+      }
+    }
+  }
+}

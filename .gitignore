@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 编辑器 / IDE（.codebuddy 是本机 IDE 数据，不随插件发布）
+.idea/
+.vscode/
+.codebuddy/
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini

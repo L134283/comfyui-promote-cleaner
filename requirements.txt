@@ -1,0 +1,7 @@
+# 本插件无任何第三方依赖，仅使用 Python 标准库（re / enum / dataclasses / typing）。
+#
+# 需要的运行环境由 ComfyUI 本体提供：
+#   - ComfyUI >= 0.3.60（V3 节点 API：comfy_api.latest）
+#   - typing_extensions（ComfyUI 自带依赖）
+#
+# 因此本文件有意留空，以免 ComfyUI-Manager / pip 做无谓的安装动作。
